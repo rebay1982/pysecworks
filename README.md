@@ -1,8 +1,8 @@
 # pysecworks
 
 ## Basic Setup and installation
-1. `python -m venv <virtual_env>`
-2. `. ./<virtual_env>/bin/activate`
+1. `python -m venv venv`
+2. `. ./venv/bin/activate`
 3. `pip install -r requirements.txt`
 
 ## Get The project running
@@ -12,6 +12,9 @@
 ### Loging In
 `curl -XPOST "http://<ip>:<port>/login" --data-raw 'username=<user_name>&password=<password>'`
 
+### Database migration
+1. `flask db migrate`  -- The initial users table migration. 
+2. `flask db upgrade` -- Runs the configured migration against the db.
 
 ## Choice of Frameworks and Libraries
 
@@ -42,6 +45,21 @@ start small and evolve from there.
 #### python-dotenv
 Simply to set basic environment variables for Flask.
 
+### Database
+
+#### Flask-Migrate
+Maybe overkill for a small project like this, but I always love having options
+to allow for database schema migrations. I can become handy for maintenance 
+purposes down the road. 
+
+It's a little price to pay now for and cheap compared to having to add this at 
+a future date.
+
+#### Flask-SQLAlchemy
+SQLAlchemy seems to be a popular ORM choice for Python and I went for it. The 
+reason for the ORM is that I want to avoid using raw SQL for this basic project
+and shield against mistakes I might make that would allow for SQL Injection 
+attacks.
 
 
 ## Misc notes
