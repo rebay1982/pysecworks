@@ -8,6 +8,10 @@
 ## Get The project running
 `flash run` at the root.
 
+## Operating Manual
+### Loging In
+`curl -XPOST "http://<ip>:<port>/login" --data-raw 'username=<user_name>&password=<password>'`
+
 
 ## Choice of Frameworks and Libraries
 

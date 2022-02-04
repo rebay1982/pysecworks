@@ -1,4 +1,5 @@
 from app import app
+from flask import request
 
 @app.route('/')
 def index():
@@ -8,8 +9,7 @@ def index():
 def graphql():
     return "Hello, GraphQL!"
 
-@app.route('/login')
+@app.route('/login', methods=['POST'])
 def login():
-    return app.config['DB_USERNAME'] + ':' + \
-        app.config['DB_PASSWORD'] + '\r\n' + \
-        'Secret Key: ' + app.config["SECRET_KEY"]
+    return request.form.get('username') + ':' + \
+        request.form.get('password')
