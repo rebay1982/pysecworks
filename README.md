@@ -40,10 +40,26 @@ The other contender was Django which seems to be a lot more complete from a
 feature set perspective but potentially excessive for this small project. Let's
 start small and evolve from there.
 
+### Security / Authentication and Authorization
+
+#### werkzeug
+Werkzeug is used to hash (with a salt) passwords and allows for validating that
+a specific password, matches a certain hash. This way we can securely store the
+hashed password for users and easily validate if the provided password matches
+the stored hash.
+
+#### Flask-Login
+This library is used to keep state and track which user is logged in. I used 
+this to easily and quickly implement access control on the /graphql enpoint. No
+authorization requirements but users do need to be authenticated to use it.
+
+Wondering if this is really needed? Not going to interface with a web UI.
+
 ### Misc
 
 #### python-dotenv
 Simply to set basic environment variables for Flask.
+
 
 ### Database
 
