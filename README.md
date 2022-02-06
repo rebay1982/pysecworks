@@ -9,8 +9,16 @@
 `flash run` at the root.
 
 ## Operating Manual
-### Loging In
-`curl -XPOST "http://<ip>:<port>/login" --data-raw 'username=<user_name>&password=<password>'`
+### Retrieve a token for the API
+`curl -u <user>:<password> -XPOST "http://<ip>:<port>/graphql/tokens"`
+
+### Query API
+`curl -X<method> "http://<ip>:<port>/graphql" -H "Authorization:Bearer <token>"`
+
+# TODO: DOCUMENT API
+
+
+
 
 ### Database migration
 1. `flask db migrate`  -- The initial users table migration. 
@@ -48,12 +56,11 @@ a specific password, matches a certain hash. This way we can securely store the
 hashed password for users and easily validate if the provided password matches
 the stored hash.
 
-#### Flask-Login
-This library is used to keep state and track which user is logged in. I used 
-this to easily and quickly implement access control on the /graphql enpoint. No
-authorization requirements but users do need to be authenticated to use it.
-
-Wondering if this is really needed? Not going to interface with a web UI.
+#### Flask-HTTPAuth
+Library used to implement API authentication so that users of the API can
+provide a username and password to authenticate to the API. Following that, they
+can request a token and use it until it expires to make subsequent calls to the 
+API.
 
 ### Misc
 
