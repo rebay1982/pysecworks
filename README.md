@@ -67,6 +67,14 @@ API.
 #### python-dotenv
 Simply to set basic environment variables for Flask.
 
+#### Redis Queues
+Hesitant to do this -- this honestly sounds pretty intense for what the
+objective is here. Let's start with threads first, this could be a good point to
+do once it's in production and we notice that it would make more sense to scale
+up using Redis Queues vs basic threads. Ie, start small and don't over engineer.
+
+#### dnspython
+Simple library to do DNS look ups with Python. Avoids re-implementing 
 
 ### Database
 

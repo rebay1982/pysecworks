@@ -57,6 +57,10 @@ class Lookup(db.Model):
         db.session.add(self)
 
     @staticmethod
+    def get(ip_address):
+        return Lookup.query.filter_by(ip_address=ip_address).first()
+
+    @staticmethod
     def create_new(ip_address, response_code):
         now = datetime.utcnow()
         lookup = Lookup( \
@@ -67,13 +71,4 @@ class Lookup(db.Model):
             ip_address = ip_address)
         db.session.add(lookup)
         return lookup
-
-
-
-
-
-
-
-
-
 
