@@ -1,4 +1,5 @@
 import base64
+import uuid
 from datetime import datetime, timedelta
 import os
 
@@ -35,9 +36,44 @@ class User(db.Model):
     def revoke_token(self):
         self.token_expiration = datetime.utcnow() - timedelta(seconds=1)
 
+    @staticmethod
     def check_token(token):
         user = User.query.filter_by(token=token).first()
         if user is None or user.token_expiration < datetime.utcnow():
             return None
         return user
+
+
+class Lookup(db.Model):
+    id = db.Column(db.String(36), primary_key=True)
+    created_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime)
+    response_code = db.Column(db.String)
+    ip_address = db.Column(db.String, index=True, unique=True)
+
+    def update(self, response_code):
+        self.updated_at = datetime.utcnow()
+        self.response_code = response_code
+        db.session.add(self)
+
+    @staticmethod
+    def create_new(ip_address, response_code):
+        now = datetime.utcnow()
+        lookup = Lookup( \
+            id = str(uuid.uuid4()), \
+            created_at = now, \
+            updated_at = now, \
+            response_code = response_code, \
+            ip_address = ip_address)
+        db.session.add(lookup)
+        return lookup
+
+
+
+
+
+
+
+
+
 

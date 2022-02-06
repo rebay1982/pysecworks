@@ -86,8 +86,15 @@ attacks.
 
 
 ## Misc notes
-Check Tutorials:
+### Tutorials
 1. https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-iv-database
 2. https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-v-user-logins
 3. https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xix-deployment-on-docker-containers
 4. https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xxiii-application-programming-interfaces-apis
+
+### Spamhaus Usage
+```
+$ dig +short <reverse_ip>.zen.spamhaus.org
+```
+Good examples are `1.0.0.127.zen.spamhaus.org` and `2.0.0.127.zen.spamhaus.org`
+
