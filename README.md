@@ -12,13 +12,15 @@
 ### Retrieve a token for the API
 `curl -u <user>:<password> -XPOST "http://<ip>:<port>/graphql/tokens"`
 
-### Query API
-`curl -X<method> "http://<ip>:<port>/graphql" -H "Authorization:Bearer <token>"`
+### Query
+`curl -vvv -XPOST "http://localhost:5000/graphql" -H "Content-Type: application/json" -H "Authorization:Bearer <token>" -d '{"query":"query {getIpDetails(ip: \"1.0.0.1\") {uuid created_at updated_at response_code ip_address}}"}'`
+`curl -vvv -XPOST "http://localhost:5000/graphql" -H "Content-Type: application/json" -H "Authorization:Bearer <token>" -d '{"query":"query {getIpDetails(ip: \"127.0.0.2\") {uuid created_at updated_at response_code ip_address}}"}'`
+
+### Mutation
+`curl -vvv -XPOST "http://localhost:5000/graphql" -H "Content-Type: application/json" -H "Authorization:Bearer <token>" -d '{"query":"mutation { enqueue(ip: [\"1.0.0.1\",\"127.0.0.2\"])}"}'`
+
 
 # TODO: DOCUMENT API
-
-
-
 
 ### Database migration
 1. `flask db migrate`  -- The initial users table migration. 
@@ -47,6 +49,18 @@ be found [here](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-par
 The other contender was Django which seems to be a lot more complete from a 
 feature set perspective but potentially excessive for this small project. Let's
 start small and evolve from there.
+
+#### Ariadne
+Not having done any GraphQL in the past, I found it intriguing to go
+"schema-first". Not going to create a debate over "schema-first" or "code-first"
+and which is better but that is how we've been building APIs where I work. We
+write an OpenAPI specification provide those specifications to our clients. We
+then generate code off of that OpenAPI specification (still qwerky and needs 
+some adjustments here and there). This is why I chose to try out "schema-first"
+for my first GraphQL API.
+
+This [blog](https://blog.logrocket.com/build-graphql-api-python-flask-ariadne/)
+has proven to be pretty helpful too.
 
 ### Security / Authentication and Authorization
 

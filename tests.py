@@ -5,6 +5,7 @@ import uuid
 from app import create_app, db
 from app.models import User, Lookup
 from app.lookup import is_valid_ip, reverse_ip, lookup_worker
+from app.api.graphql import resolve_getipdetails, resolve_enqueue
 from config import Config
 
 class TestConfig(Config):
@@ -137,6 +138,29 @@ class LookupModelCase (unittest.TestCase):
         self.assertEqual(ip, lookup.ip_address)
         self.assertEqual(response_code, lookup.response_code)
 
+    def test_to_dict(self):
+        now = datetime.utcnow()
+        ip_address = "127.0.0.1"
+        response_code = "response code"
+        created_at = now
+        updated_at = now
+        id = "someid"
+        lookup = Lookup( \
+            id=id, \
+            created_at=created_at, \
+            updated_at=updated_at, \
+            response_code=response_code, \
+            ip_address=ip_address)
+
+        lookup_dict = lookup.to_dict()
+
+        self.assertEqual(id, lookup_dict["uuid"])
+        self.assertEqual(id, lookup_dict["id"])
+        self.assertEqual(str(created_at), lookup_dict["created_at"])
+        self.assertEqual(str(updated_at), lookup_dict["updated_at"])
+        self.assertEqual(response_code, lookup_dict["response_code"])
+        self.assertEqual(ip_address, lookup_dict["ip_address"])
+
 
 # Should MOCK the dns.resolve lookup -- if service disappears, tests will start
 # failing :(
@@ -234,6 +258,66 @@ class LookupWorkerCase (unittest.TestCase):
 
         self.assertLess(lookup.created_at, lookup.updated_at)
 
+class QueryResolverCase (unittest.TestCase):
+    def setUp(self):
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_getipdetails_no_results(self):
+        ip = "127.0.0.1"
+        response_code = "No records found."
+        
+        lookup = resolve_getipdetails(None, None, ip)
+       
+        self.assertEqual(response_code, lookup["response_code"])
+        self.assertEqual(ip, lookup["ip_address"])
+
+    def test_getipdetails_with_results(self):
+        ip = "127.0.0.1"
+        response_code = "valid response code"
+        lookup = Lookup.create_new(ip, response_code)
+        db.session.commit()
+
+        lookup_dict = resolve_getipdetails(None, None, ip)
+        
+        self.assertEqual(lookup.ip_address, lookup_dict["ip_address"])
+        self.assertEqual(lookup.response_code, lookup_dict["response_code"])
+        self.assertEqual(str(lookup.created_at), lookup_dict["created_at"])
+        self.assertEqual(str(lookup.updated_at), lookup_dict["updated_at"])
+        self.assertEqual(lookup.id, lookup_dict["uuid"])
+
+class MutationResolverCase (unittest.TestCase):
+    def setUp(self):
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_enqueue_multiple(self):
+        ips = ["127.0.0.1", "127.0.0.2"]
+
+        result = resolve_enqueue(None, None, ips)
+        
+        self.assertEqual(len(ips), result)
+
+    def test_enqueue_single(self):
+        ips = ["127.0.0.2"]
+
+        result = resolve_enqueue(None, None, ips)
+        
+        self.assertEqual(len(ips), result)
 
 def isValidUUID(value):
     try:
@@ -241,8 +325,6 @@ def isValidUUID(value):
         return True
     except ValueError:
         return False
-
-
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

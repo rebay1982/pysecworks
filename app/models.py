@@ -51,6 +51,16 @@ class Lookup(db.Model):
     response_code = db.Column(db.String)
     ip_address = db.Column(db.String, index=True, unique=True)
 
+    def to_dict(self):
+        return {
+            "uuid": self.id,
+            "id": self.id,
+            "created_at": str(self.created_at),
+            "updated_at": str(self.updated_at),
+            "response_code": self.response_code,
+            "ip_address": self.ip_address
+        }
+
     def update(self, response_code):
         self.updated_at = datetime.utcnow()
         self.response_code = response_code
