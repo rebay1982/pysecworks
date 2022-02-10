@@ -6,9 +6,9 @@ from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-
 db = SQLAlchemy()
 migrate = Migrate()
+lookup_queue = LookupQueue()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -16,6 +16,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    lookup_queue.start_workers()
 
     # Here to avoid a circualar import with the routes module.
     from app.errors import bp as errors_bp

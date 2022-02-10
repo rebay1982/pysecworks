@@ -7,6 +7,8 @@ from app.models import Lookup
 
 from flask import request, jsonify
 from ariadne import graphql_sync, make_executable_schema
+from app import lookup_queue
+
 
 @bp.route('', methods=['GET'])
 @token_auth.login_required
@@ -31,9 +33,8 @@ def resolve_getipdetails(_, info, ip):
 
 @mutation.field("enqueue")
 def resolve_enqueue(_, info, ip):
-    lookup_worker(ip)
+    lookup_queue.add_lookup(ip)
     return len(ip)
 
 schema = make_executable_schema(type_defs, [query, mutation])
-
 
