@@ -8,6 +8,23 @@
 ## Get The project running
 `flash run` at the root.
 
+## Docker
+
+### Building the Image
+
+You can build the image using the following command on Linux.
+`sudo docker build -t pysecworks:latest .`
+
+### Running the Image
+
+This runs the application on port 5000.
+`sudo docker run --name pysecworks --network host -d --rm pysecworks:latest`
+
+You can specify the port by passing in a PORT environment variable. For example, running on
+port `8000` would look like this:
+`sudo docker run --name pysecworks --network host -d -e PORT=8000 --rm pysecworks:latest`
+
+
 ## Operating Manual
 ### Retrieve a token for the API
 `curl -u <user>:<password> -XPOST "http://<ip>:<port>/graphql/tokens"`
@@ -18,6 +35,8 @@
 
 ### Mutation
 `curl -vvv -XPOST "http://localhost:5000/graphql" -H "Content-Type: application/json" -H "Authorization:Bearer <token>" -d '{"query":"mutation { enqueue(ip: [\"1.0.0.1\",\"127.0.0.2\"])}"}'`
+
+
 
 
 # TODO: DOCUMENT API
