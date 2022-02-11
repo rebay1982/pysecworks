@@ -2,7 +2,7 @@ import logging
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.schema import type_defs, query, mutation
-from app.lookup import lookup_worker 
+from app.lookup import exec_lookup 
 from app.models import Lookup
 
 from flask import request, jsonify
@@ -31,7 +31,7 @@ def resolve_getipdetails(_, info, ip):
 
 @mutation.field("enqueue")
 def resolve_enqueue(_, info, ip):
-    lookup_worker(ip)
+    exec_lookup(ip)
     return len(ip)
 
 schema = make_executable_schema(type_defs, [query, mutation])

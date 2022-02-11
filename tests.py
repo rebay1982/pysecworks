@@ -1,23 +1,26 @@
 from datetime import datetime, timedelta
+import dns.resolver
 import unittest
 import uuid
 
 from app import create_app, db
 from app.models import User, Lookup
-from app.lookup import is_valid_ip, reverse_ip, lookup_worker
+from app.lookup import is_valid_ip, reverse_ip, lookup_worker, get_lookup_response_code
 from app.api.graphql import resolve_getipdetails, resolve_enqueue
 from config import Config
 
+from unittest.mock import MagicMock, patch
+
 class TestConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite://'   # encore use of in-memory DB.
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'   # Use of in-memory DB.
 
 class UserModelCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app(TestConfig)
         self.app_context = self.app.app_context()
         self.app_context.push()
-        db.create_all()                     # Setup and create the DB tables
+        db.create_all()
 
     def tearDown(self):
         db.session.remove()
@@ -92,7 +95,7 @@ class LookupModelCase (unittest.TestCase):
         self.app = create_app(TestConfig)
         self.app_context = self.app.app_context()
         self.app_context.push()
-        db.create_all()                     # Setup and create the DB tables
+        db.create_all()
 
     def tearDown(self):
         db.session.remove()
@@ -162,9 +165,7 @@ class LookupModelCase (unittest.TestCase):
         self.assertEqual(ip_address, lookup_dict["ip_address"])
 
 
-# Should MOCK the dns.resolve lookup -- if service disappears, tests will start
-# failing :(
-class LookupWorkerCase (unittest.TestCase):
+class LookupWorkerCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app(TestConfig)
         self.app_context = self.app.app_context()
@@ -205,42 +206,82 @@ class LookupWorkerCase (unittest.TestCase):
 
         self.assertFalse(result)
 
-    def test_lookup_good(self):
+    @patch('app.lookup.dns.resolver.resolve')
+    def test_get_lookup_response_code_no_results(self, mock_dns_resolver):
+        lookup = "some_lookup"
+        expected_response = "No Response"
+        mock_dns_resolver.side_effect = dns.resolver.NXDOMAIN()
+
+        response_code = get_lookup_response_code(lookup)
+
+        self.assertEqual(expected_response, response_code)
+
+    @patch('app.lookup.dns.resolver.resolve')
+    def test_get_lookup_response_code_single_result(self, mock_dns_resolver):
+        lookup = "some_lookup"
+        expected_response = "a_result"
+        mock_dns_resolver.return_value = [expected_response]
+
+        response_code = get_lookup_response_code(lookup)
+
+        self.assertEqual(expected_response, response_code)
+
+    @patch('app.lookup.dns.resolver.resolve')
+    def test_get_lookup_response_code_multiple_results(self, mock_dns_resolver):
+        lookup = "some_lookup"
+        expected_response = "a_result, b_result"
+        mock_dns_resolver.return_value = ["a_result", "b_result"]
+
+        response_code = get_lookup_response_code(lookup)
+
+        self.assertEqual(expected_response, response_code)
+    
+    @patch('app.lookup.get_lookup_response_code')
+    def test_lookup_good(self, mock_lookup):
         ips = ["127.0.0.2"]
         expected_response_codes = ["127.0.0.10", "127.0.0.4", "127.0.0.2"]
+        mock_lookup.return_value = "127.0.0.10, 127.0.0.4, 127.0.0.2"
 
-        lookup_worker(ips)
+        lookup_worker(self.app, ips)
         lookup = Lookup.get(ips[0])
-        
+       
         self.assertEqual(ips[0], lookup.ip_address)
         self.assertEqual(lookup.created_at, lookup.updated_at)
-
+        self.assertEqual(len(ips), mock_lookup.call_count)
+        
         for expected_code in expected_response_codes:
             self.assertTrue(expected_code in lookup.response_code)
 
-    def test_lookup_bad(self):
+    @patch('app.lookup.get_lookup_response_code')
+    def test_lookup_bad(self, mock_lookup):
         ips = ["127.0.0.1"]
         expected_response_codes = ["No Response"]
+        mock_lookup.return_value = "No Response"
 
-        lookup_worker(ips)
+        lookup_worker(self.app, ips)
         lookup = Lookup.get(ips[0])
-        
+
         self.assertEqual(ips[0], lookup.ip_address)
         self.assertEqual(lookup.created_at, lookup.updated_at)
+        self.assertEqual(len(ips), mock_lookup.call_count)
 
         for expected_code in expected_response_codes:
             self.assertTrue(expected_code in lookup.response_code)
 
-    def test_lookup_multiple(self):
+    @patch('app.lookup.get_lookup_response_code')
+    def test_lookup_multiple(self, mock_lookup):
+
         ips = ["127.0.0.1", "127.0.0.2"]
         expected_response_codes = [["No Response"], ["127.0.0.10", "127.0.0.4", "127.0.0.2"]]
+        mock_lookup.side_effect = ["No Response", "127.0.0.10, 127.0.0.4, 127.0.0.2"]
 
-        lookup_worker(ips)
+        lookup_worker(self.app, ips)
         lookupA = Lookup.get(ips[0])
         lookupB = Lookup.get(ips[1])
 
         self.assertEqual(ips[0], lookupA.ip_address)
         self.assertEqual(ips[1], lookupB.ip_address)
+        self.assertEqual(len(ips), mock_lookup.call_count)
 
         for expected_code in expected_response_codes[0]:
             self.assertTrue(expected_code in lookupA.response_code)
@@ -248,15 +289,18 @@ class LookupWorkerCase (unittest.TestCase):
         for expected_code in expected_response_codes[1]:
             self.assertTrue(expected_code in lookupB.response_code)
 
-    def test_lookup_update(self):
+    @patch('app.lookup')
+    def test_lookup_update(self, mock_lookup):
         ips = ["127.0.0.1"]
-        
-        lookup_worker(ips)
-        lookup_worker(ips)
+        mock_lookup.get_lookup_response_code.return_value = "No Response"
+       
+        lookup_worker(self.app, ips)
+        lookup_worker(self.app, ips)
         
         lookup = Lookup.get(ips[0])
 
         self.assertLess(lookup.created_at, lookup.updated_at)
+
 
 class QueryResolverCase (unittest.TestCase):
     def setUp(self):
@@ -305,19 +349,24 @@ class MutationResolverCase (unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def test_enqueue_multiple(self):
+    @patch('app.api.graphql.exec_lookup')
+    def test_enqueue_multiple(self, mock_exec_lookup):
         ips = ["127.0.0.1", "127.0.0.2"]
 
         result = resolve_enqueue(None, None, ips)
-        
-        self.assertEqual(len(ips), result)
 
-    def test_enqueue_single(self):
+        self.assertEqual(len(ips), result)
+        mock_exec_lookup.assert_called_once_with(ips)
+
+    @patch('app.api.graphql.exec_lookup')
+    def test_enqueue_single(self, mock_exec_lookup):
         ips = ["127.0.0.2"]
 
         result = resolve_enqueue(None, None, ips)
         
         self.assertEqual(len(ips), result)
+        mock_exec_lookup.assert_called_once_with(ips)
+
 
 def isValidUUID(value):
     try:

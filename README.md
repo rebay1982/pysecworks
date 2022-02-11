@@ -27,7 +27,10 @@ port `8000` would look like this:
 
 ## Operating Manual
 ### Retrieve a token for the API
-`curl -u <user>:<password> -XPOST "http://<ip>:<port>/graphql/tokens"`
+`curl -u <user>:<password> -XPOST "http://localhost:5000/graphql/tokens"`
+
+### Revoke a token from the API
+`curl -XDELETE "http://localhost:5000/graphql/tokens" -H "Authorization: Bearer <token>"`
 
 ### Query
 `curl -vvv -XPOST "http://localhost:5000/graphql" -H "Content-Type: application/json" -H "Authorization:Bearer <token>" -d '{"query":"query {getIpDetails(ip: \"1.0.0.1\") {uuid created_at updated_at response_code ip_address}}"}'`
