@@ -54,3 +54,38 @@ def get_lookup_response_code(lookup):
         response_code = "No Response"
 
     return response_code
+
+
+from threading import Thread
+from queue import Queue
+
+from flask import current_app
+from app import create_app
+
+app = create_app()
+app.app_context().push()
+
+
+class LookupQueue(Queue):
+    def __init__(self, nb_workers = 1):
+        Queue.__init__(self)
+        self.nb_workers = nb_workers
+        self.start_workers()
+
+    def add_lookup(self, ips):
+        self.put(ips)
+
+    def start_workers(self):
+
+        for i in range(self.nb_workers):
+            t = Thread(target = self.worker, args=(current_app._get_current_object()))
+            t.daemon = True
+            t.start()
+
+    def worker(self, app):
+        while True:
+            ips = self.get()
+            with app.app_context():
+                lookup_worker(ips)
+            self.task_done()
+

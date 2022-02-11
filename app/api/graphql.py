@@ -2,13 +2,15 @@ import logging
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.schema import type_defs, query, mutation
-from app.lookup import lookup_worker 
 from app.models import Lookup
+#from app.lookup.lookupqueue import lookup_worker
+from app.lookup.lookupqueue import LookupQueue
 
 from flask import request, jsonify
 from ariadne import graphql_sync, make_executable_schema
-from app import lookup_queue
 
+lookup_queue = LookupQueue()
+lookup_queue.start_workers()
 
 @bp.route('', methods=['GET'])
 @token_auth.login_required
@@ -34,6 +36,7 @@ def resolve_getipdetails(_, info, ip):
 @mutation.field("enqueue")
 def resolve_enqueue(_, info, ip):
     lookup_queue.add_lookup(ip)
+    #lookup_worker(ip)
     return len(ip)
 
 schema = make_executable_schema(type_defs, [query, mutation])

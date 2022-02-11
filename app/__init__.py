@@ -8,7 +8,6 @@ from flask_migrate import Migrate
 
 db = SQLAlchemy()
 migrate = Migrate()
-lookup_queue = LookupQueue()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -16,14 +15,12 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
-    lookup_queue.start_workers()
-
-    # Here to avoid a circualar import with the routes module.
-    from app.errors import bp as errors_bp
-    app.register_blueprint(errors_bp)
 
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/graphql')
+
+    from app.lookup import bp as lookup_bp
+    app.register_blueprint(lookup_bp)
 
     if not app.debug and not app.testing:
         if not os.path.exists('logs'):
@@ -43,3 +40,4 @@ def create_app(config_class=Config):
     return app
 
 from app import models
+
